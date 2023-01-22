@@ -1,0 +1,302 @@
+# this file is intended to be sourced from your login shell
+
+function gwt_create_worktree {
+    if [[ ! -d ${repodir}/${1} ]]; then
+        echo -e "${yellow}gwt: Unable to find repo: ${nc}${1}"
+        echo
+        tree -d -L 1 --noreport ${repodir}
+    else
+        if [[ ! -d ${repodir}/${1}/.trees ]]; then
+            echo -e "${yellow}gwt: Ensuring worktree parent dir exists in repo: ${nc}${1}"
+            mkdir -p ${repodir}/${1}/.trees
+        else
+            cd ${repodir}/${1}/.trees
+        fi
+
+        if [[ -d ${repodir}/${1}/.trees/${2} ]]; then
+            echo -e "${yellow}gwt: Found existing worktree ${nc}${2}${yellow} in ${nc}${1}"
+            echo
+            tree -d -L 1 --noreport ${repodir}/${1}/.trees
+        else
+            local fetch_remote
+            fetch_remote="${3%\/*}"
+            echo -e "${yellow}gwt: Checking if ${nc}${fetch_remote}${yellow} is a fetchable remote${nc}"
+            local fetch_branch
+            fetch_branch="${3#*\/}"
+            local fetchable_remote
+            fetchable_remote=$(git remotes | grep -E "^${fetch_remote}.*\(fetch\)$")
+
+            if [[ -z "${fetchable_remote}" ]]; then
+                echo -e "${yellow}gwt: Remote ${nc}${fetch_remote}${yellow} is not fetchable${nc}"
+                echo -e "${yellow}gwt: Please re-run: ${nc}gwt create <repo> <worktree> <remote>"
+            else
+                echo -e "${yellow}gwt: Fetching remote: ${nc}${fetch_remote}"
+                git fetch --prune --tags ${fetch_remote}
+
+                echo -e "${yellow}gwt: Checking if ${nc}${fetch_branch}${yellow} is a valid head on ${nc}${fetch_remote}${yellow} remote${nc}"
+                local remote_head
+                remote_head=$(git ls-remote --heads ${fetch_remote} | grep "${fetch_branch}$")
+
+                if [[ -z "${remote_head}" ]]; then
+                    echo -e "${yellow}gwt: Head ${nc}${fetch_branch}${yellow} was not found on ${nc}${fetch_remote}${yellow} remote${nc}"
+                    echo -e "${yellow}gwt: Please re-run: ${nc}gwt create <repo> <worktree> <remote>/<head>"
+                else
+                    echo -e "${yellow}gwt: Creating worktree${nc}"
+                    local add_ret
+                    git worktree add -b ${2} ${repodir}/${1}/.trees/${2} ${3}
+                    add_ret=$?
+
+                    if [[ ${add_ret} -ne 0 ]]; then
+                        echo
+                        echo -e "${yellow}gwt: Creating the worktree FAILED !!${nc}"
+                    else
+                        cd ${repodir}/${1}/.trees/${2}
+                        gwt_init_submodules
+                    fi
+                fi
+            fi
+        fi
+    fi
+}
+
+function gwt_get_upstream_development_revision {
+    echo -e "${yellow}gwt: Determining the upstream remote for this branch${nc}"
+    local _upstream_remote; _upstream_remote=$(git rev-parse --abbrev-ref $(git branch --show-current)@{upstream} | cut -d\/ -f1)
+    echo -e "${yellow}gwt: Determined the upstream remote for this branch: ${nc}${_upstream_remote}"
+    echo -e "${yellow}gwt: Determining the upstream branch for this branch${nc}"
+    local _upstream_branch; _upstream_branch=$(git rev-parse --abbrev-ref $(git branch --show-current)@{upstream} | cut -d\/ -f2)
+    echo -e "${yellow}gwt: Determined the upstream branch for this branch: ${nc}${_upstream_branch}"
+
+    echo -e "${yellow}gwt: Fetching info from remote: ${nc}${_upstream_remote}"
+    git fetch --prune --force --quiet upstream
+
+    echo -e "${yellow}gwt: Checking if ${nc}${_upstream_remote}/${_upstream_branch}${yellow} has advanced since last pull${nc}"
+    git merge-base --is-ancestor $(git branch --show-current) ${_upstream_remote}/${_upstream_branch}
+    ancestor_ret=$?
+
+    if [[ ${ancestor_ret} -eq 0 ]]; then
+        echo -e "${yellow}gwt: Remote head has not advanced${nc}"
+    else
+        echo -e "${yellow}gwt: Merging from remote head: ${nc}${_upstream_remote}/${_upstream_branch}"
+        git merge ${_upstream_remote}/${_upstream_branch}
+    fi
+}
+
+function gwt_check_for_merge {
+    echo -e "${yellow}gwt: Checking if a merge is in progress${nc}"
+    git rev-list -1 MERGE_HEAD &>/dev/null
+    if [[ $? -eq 128 ]]; then
+        echo -e "${yellow}gwt: A merge IS NOT in progress${nc}"
+        gwt_get_origin_revision
+        gwt_get_upstream_development_revision
+    else
+        echo -e "${yellow}gwt: A MERGE IS IN PROGRESS. Please finish the merge!${nc}"
+    fi
+    }
+function gwt_enter_worktree {
+    cd ${1}
+    gwt_check_for_merge
+}
+
+function gwt_find_trees {
+    if [[ -d ${repodir} ]]; then
+        if [[ -z ${1} ]]; then
+            find ${repodir} -type d -wholename '*/.trees' -print | while read line; do
+                (cd ${line} && dirname ${line} && git worktree list | tail -n +2 | sed -e "s#${repodir}/.*\.trees/##g" -e 's/^/↳\ /')
+                echo
+            done
+        else
+            basename ${repodir}/${1}
+            (cd ${repodir}/${1} && git worktree list | tail -n +2 | sed -e "s#${repodir}/${1}/.trees/##g" -e 's/^/↳\ /')
+        fi
+    else
+        echo -e "${yellow}gwt: Cannot find the path specified by GWT_REPO_HOME{$nc}"
+        echo -e "${yellow}gwt: Please set/update GWT_REPO_HOME and try again${nc}"
+    fi
+}
+
+function gwt_find_specified_worktree {
+    local reponame
+    if [[ $# -gt 1 ]]; then
+        reponame=${1}
+        shift
+    else
+        reponame=''
+    fi
+
+    if [[ -d ${repodir}/${reponame} ]]; then
+        local worktrees
+        worktrees=$(find ${repodir}/${reponame} -type d -wholename "*/.trees/${1}" -print)
+        local worktree_count
+        if [[ -z "${worktrees}" ]]; then
+            worktree_count=0
+        else
+            worktree_count=$(echo ${worktrees} | wc -l)
+        fi
+
+        case ${worktree_count} in
+            0)
+                if [[ -z "${reponame}" ]]; then
+                    echo -e "${yellow}gwt: Unable to find a worktree named ${nc}${1}${yellow} in ${nc}${repodir}"
+                    echo
+                    gwt_find_trees
+                else
+                    echo -e "${yellow}gwt: Unable to find a worktree named ${nc}${1}${yellow} in ${nc}${reponame}"
+                    echo -e "${yellow}gwt: If you wish to create this worktree, pls re-run as: ${nc}gwt create <repo> <worktree>"
+                fi
+                ;;
+            1)
+                echo -e "${yellow}gwt: Found the ${nc}${1}${yellow} worktree${nc}"
+                gwt_enter_worktree ${worktrees}
+                ;;
+            *)
+                echo -e "${yellow}gwt: Found multiple worktrees named ${nc}${1}${yellow} in ${nc}${repodir}"
+                echo -e "${yellow}gwt: Please re-run as: ${nc}gwt <repo> <worktree>"
+                echo
+                gwt_find_trees
+                ;;
+        esac
+    else
+        echo -e "${yellow}gwt: Unable to find ${nc}${reponame} ${yellow}repo${nc}"
+        echo -e "${yellow}gwt: Double-check GWT_REPO_HOME${nc}"
+    fi
+}
+
+function gwt_get_origin_revision {
+    echo -e "${yellow}gwt: Determining the worktree's branch revision${nc}"
+    local local_revision
+    local_revision=$(git rev-parse $(git branch --show-current))
+    echo -e "${yellow}gwt: Local worktree's branch revision: ${nc}${local_revision}"
+
+    echo -e "${yellow}gwt: Fetching info from remote: ${nc}origin"
+    git fetch --prune --force --quiet origin
+
+    echo -e "${yellow}gwt: Checking if this branch exists on remote: ${nc}origin"
+    local remote_head
+    remote_head=$(git ls-remote --heads origin | grep "refs/heads/$(git branch --show-current)$")
+
+    if [[ -z "${remote_head}" ]]; then
+        echo -e "${yellow}gwt: This worktree's branch not found on remote: ${nc}origin"
+    else
+        echo -e "${yellow}gwt: Checking the revision of this branch on: ${nc}origin"
+        local remote_revision
+        remote_revision=$(git rev-parse origin/$(git branch --show-current))
+        echo -e "${yellow}gwt: Remote ${nc}origin${yellow} has this branch on revision: ${nc}${remote_revision}"
+
+        echo -e "${yellow}gwt: Checking the base revision of this branch on: ${nc}origin"
+        local base_revision
+        base_revision=$(git merge-base $(git branch --show-current) origin/$(git branch --show-current))
+
+        if [[ "${local_revision}" == "${remote_revision}" ]]; then
+            echo -e "${yellow}gwt: Revisions match; continuing${nc}"
+        elif [[ "${local_revision}" == "${base_revision}" ]]; then
+            echo -e "${yellow}gwt: Pulling from remote: ${nc}origin"
+            git pull origin $(git branch --show-current)
+        elif [[ "${remote_revision}" == "${base_revision}" ]]; then
+            echo -e "${yellow}gwt: Pushing to remote: ${nc}origin"
+            git push --prune origin $(git branch --show-current)
+        fi
+    fi
+}
+
+function gwt_init_submodules {
+    echo -e "${yellow}gwt: Checking if this repo uses submodules${nc}"
+    submodules=$(git submodule status 2>/dev/null)
+    if [[ -n ${foo} ]]; then
+        echo -e "${yellow}gwt: Found submodules in this repo. Initializing them${nc}"
+        git submodule update --init
+    else
+        echo -e "${yellow}gwt: No submodules configured in this repo${nc}"
+    fi
+}
+
+function gwt_prune_worktree {
+    local reponame
+    if [[ $# -gt 1 ]]; then
+        reponame=${1}
+        shift
+    else
+        reponame=''
+    fi
+
+    if [[ -d ${repodir}/${reponame} ]]; then
+        local worktrees
+        worktrees=$(find ${repodir}/${reponame} -type d -wholename "*/.trees/${1}" -print)
+        local worktree_count
+        if [[ -z "${worktrees}" ]]; then
+            worktree_count=0
+        else
+            worktree_count=$(echo ${worktrees} | wc -l)
+        fi
+
+        case ${worktree_count} in
+            1)
+                cd $(dirname ${worktrees})
+                echo -e "${yellow}gwt: Removing the worktree from disk: ${nc}${worktrees}"
+                git worktree remove --force ${worktrees}
+                echo -e "${yellow}gwt: Deleting the branch: ${nc}${1}"
+                git branch -D ${1} 2>/dev/null
+                cd ~
+                ;;
+            *)
+                echo -e "${yellow}gwt: Could not find the worktree ${nc}${1}${yellow} in repository ${nc}${reponame}"
+                echo -e "${yellow}gwt: Unable to prune the worktree: ${nc}${1}"
+                ;;
+        esac
+    fi
+}
+
+function gwt {
+    # where all your repos live
+    local repodir; repodir="${GWT_REPO_HOME:=/srv/repos}" ; repodir="${repodir%/}"
+    # colors
+    yellow='\033[1;33m'
+    nc='\033[0m'
+
+    case $# in
+        0)
+            # no args, give them a listing
+            gwt_find_trees
+            ;;
+        1|2)
+            case "${1}" in
+                create|prune)
+                    echo -e "${yellow}gwt: Invalid options${nc}"
+                    echo -e "${yellow}gwt: Please re-run as: ${nc}gwt ${1} <repo> <worktree>"
+                    ;;
+                ls)
+                    gwt_find_trees ${2}
+                    ;;
+                *)
+                    gwt_find_specified_worktree "$@"
+                    ;;
+            esac
+            ;;
+        3|4)
+            if [[ "${1}" == "create" ]]; then
+                shift
+                case $# in
+                    2)
+                        gwt_create_worktree ${1} ${2} upstream/development
+                        ;;
+                    3)
+                        local remote ; remote=${3%\/*}
+                        local head; head=${3#*\/}
+                        gwt_create_worktree ${1} ${2} ${remote}/${head:=development}
+                        ;;
+                    4)
+                        local remote ; remote=${3}
+                        local head; head=${4}
+                        gwt_create_worktree ${1} ${2} ${remote}/${head}
+                        ;;
+                esac
+            elif [[ "${1}" == "prune" ]]; then
+                shift
+                gwt_prune_worktree "$@"
+            else
+                echo -e "${yellow}gwt: Invalid options${nc}"
+                echo -e "${yellow}gwt: Please re-run as: ${nc}gwt create <repo> <worktree>"
+            fi
+            ;;
+    esac
+}
