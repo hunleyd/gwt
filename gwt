@@ -200,14 +200,8 @@ function gwt_get_origin_revision {
 }
 
 function gwt_init_submodules {
-    echo -e "${yellow}gwt: Checking if this repo uses submodules${nc}"
-    submodules=$(git submodule status 2>/dev/null)
-    if [[ -n ${foo} ]]; then
-        echo -e "${yellow}gwt: Found submodules in this repo. Initializing them${nc}"
-        git submodule update --init
-    else
-        echo -e "${yellow}gwt: No submodules configured in this repo${nc}"
-    fi
+        echo -e "${yellow}gwt: Initializing submodules${nc}"
+        git submodule update --remote --recursive --init
 }
 
 function gwt_prune_worktree {
