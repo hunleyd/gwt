@@ -98,16 +98,22 @@ function gwt_enter_worktree {
     gwt_check_for_merge
 }
 
+function prune_cache_worktrees {
+    git worktree list | grep -E '\.cache.*old-rev' | awk '{print $1}' | while read line2; do
+        git worktree remove -f "${line2}"
+    done
+}
+
 function gwt_find_trees {
     if [[ -d ${repodir} ]]; then
         if [[ -z ${1} ]]; then
             find ${repodir} -type d -wholename '*/.trees' -print | while read line; do
-                (cd ${line} && dirname ${line} && git worktree list | tail -n +2 | sed -e "s#${repodir}/.*\.trees/##g" -e 's/^/↳\ /')
+                (cd ${line} && prune_cache_worktrees && dirname ${line} && git worktree list | tail -n +2 | sed -e "s#${repodir}/.*\.trees/##g" -e 's/^/↳\ /')
                 echo
             done
         else
             basename ${repodir}/${1}
-            (cd ${repodir}/${1} && git worktree list | tail -n +2 | sed -e "s#${repodir}/${1}/.trees/##g" -e 's/^/↳\ /')
+            (cd ${repodir}/${1} && prune_cache_worktrees && git worktree list | tail -n +2 | sed -e "s#${repodir}/${1}/.trees/##g" -e 's/^/↳\ /')
         fi
     else
         echo -e "${yellow}gwt: Cannot find the path specified by GWT_REPO_HOME{$nc}"
