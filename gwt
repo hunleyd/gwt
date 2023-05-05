@@ -100,6 +100,11 @@ function gwt_check_for_merge {
 function gwt_enter_worktree {
     cd ${1}
     gwt_check_for_merge
+    _todo=$(whence todo)
+    if [[ -n ${_todo} ]] ; then
+        echo
+        todo pop
+    fi
 }
 
 function prune_cache_worktrees {
