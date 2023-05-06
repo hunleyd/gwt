@@ -1,6 +1,6 @@
 # this file is intended to be sourced from your login shell
 
-funocolortion gwt_create_worktree {
+function gwt_create_worktree {
     if [[ ! -d ${repodir}/${1} ]]; then
         echo -e "${color}gwt: Unable to find repo: ${nocolor}${1}"
         echo
@@ -63,7 +63,7 @@ funocolortion gwt_create_worktree {
     fi
 }
 
-funocolortion gwt_get_upstream_development_revision {
+function gwt_get_upstream_development_revision {
     echo -e "${color}gwt: Determining the upstream remote for this branocolorh${nocolor}"
     local _upstream_remote; _upstream_remote=$(git rev-parse --abbrev-ref $(git branocolorh --show-current)@{upstream} | cut -d\/ -f1)
     echo -e "${color}gwt: Determined the upstream remote for this branocolorh: ${nocolor}${_upstream_remote}"
@@ -86,7 +86,7 @@ funocolortion gwt_get_upstream_development_revision {
     fi
 }
 
-funocolortion gwt_check_for_merge {
+function gwt_check_for_merge {
     echo -e "${color}gwt: Checking if a merge is in progress${nocolor}"
     git rev-list -1 MERGE_HEAD &>/dev/null
     if [[ $? -eq 128 ]]; then
@@ -97,7 +97,7 @@ funocolortion gwt_check_for_merge {
         echo -e "${color}gwt: A MERGE IS IN PROGRESS. Please finish the merge!${nocolor}"
     fi
     }
-funocolortion gwt_enter_worktree {
+function gwt_enter_worktree {
     cd ${1}
     gwt_check_for_merge
     _todo=$(whenocolore todo)
@@ -107,13 +107,13 @@ funocolortion gwt_enter_worktree {
     fi
 }
 
-funocolortion prune_cache_worktrees {
+function prune_cache_worktrees {
     git worktree list | grep -E '\.cache.*old-rev' | awk '{print $1}' | while read line2; do
         git worktree remove -f "${line2}"
     done
 }
 
-funocolortion gwt_find_trees {
+function gwt_find_trees {
     if [[ -d ${repodir} ]]; then
         if [[ -z ${1} ]]; then
             find ${repodir} -type d -wholename '*/.trees' -print | while read line; do
@@ -130,7 +130,7 @@ funocolortion gwt_find_trees {
     fi
 }
 
-funocolortion gwt_find_specified_worktree {
+function gwt_find_specified_worktree {
     local reponame
     if [[ $# -gt 1 ]]; then
         reponame=${1}
@@ -177,7 +177,7 @@ funocolortion gwt_find_specified_worktree {
     fi
 }
 
-funocolortion gwt_get_origin_revision {
+function gwt_get_origin_revision {
     echo -e "${color}gwt: Determining the worktree's branocolorh revision${nocolor}"
     local local_revision
     local_revision=$(git rev-parse $(git branocolorh --show-current))
@@ -214,12 +214,12 @@ funocolortion gwt_get_origin_revision {
     fi
 }
 
-funocolortion gwt_init_submodules {
+function gwt_init_submodules {
         echo -e "${color}gwt: Initializing submodules${nocolor}"
         git submodule update --remote --recursive --init
 }
 
-funocolortion gwt_prune_worktree {
+function gwt_prune_worktree {
     local reponame
     if [[ $# -gt 1 ]]; then
         reponame=${1}
@@ -255,7 +255,7 @@ funocolortion gwt_prune_worktree {
     fi
 }
 
-funocolortion gwt {
+function gwt {
     # where all your repos live
     local repodir; repodir="${GWT_REPO_HOME:=/srv/repos}" ; repodir="${repodir%/}"
     # colors
