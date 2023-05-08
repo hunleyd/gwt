@@ -21,8 +21,8 @@ function gwt_create_worktree {
             local fetch_remote
             fetch_remote="${3%\/*}"
             echo -e "${color}gwt: Checking if ${nocolor}${fetch_remote}${color} is a fetchable remote${nocolor}"
-            local fetch_branocolorh
-            fetch_branocolorh="${3#*\/}"
+            local fetch_branch
+            fetch_branch="${3#*\/}"
             local fetchable_remote
             fetchable_remote=$(git remotes | grep -E "^${fetch_remote}.*\(fetch\)$")
 
@@ -33,12 +33,12 @@ function gwt_create_worktree {
                 echo -e "${color}gwt: Fetching remote: ${nocolor}${fetch_remote}"
                 git fetch --prune --tags ${fetch_remote}
 
-                echo -e "${color}gwt: Checking if ${nocolor}${fetch_branocolorh}${color} is a valid head on ${nocolor}${fetch_remote}${color} remote${nocolor}"
+                echo -e "${color}gwt: Checking if ${nocolor}${fetch_branch}${color} is a valid head on ${nocolor}${fetch_remote}${color} remote${nocolor}"
                 local remote_head
-                remote_head=$(git ls-remote --heads ${fetch_remote} | grep "${fetch_branocolorh}$")
+                remote_head=$(git ls-remote --heads ${fetch_remote} | grep "${fetch_branch}$")
 
                 if [[ -z "${remote_head}" ]]; then
-                    echo -e "${color}gwt: Head ${nocolor}${fetch_branocolorh}${color} was not found on ${nocolor}${fetch_remote}${color} remote${nocolor}"
+                    echo -e "${color}gwt: Head ${nocolor}${fetch_branch}${color} was not found on ${nocolor}${fetch_remote}${color} remote${nocolor}"
                     echo -e "${color}gwt: Please re-run: ${nocolor}gwt create <repo> <worktree> <remote>/<head>"
                 else
                     echo -e "${color}gwt: Creating worktree${nocolor}"
@@ -64,25 +64,25 @@ function gwt_create_worktree {
 }
 
 function gwt_get_upstream_development_revision {
-    echo -e "${color}gwt: Determining the upstream remote for this branocolorh${nocolor}"
-    local _upstream_remote; _upstream_remote=$(git rev-parse --abbrev-ref $(git branocolorh --show-current)@{upstream} | cut -d\/ -f1)
-    echo -e "${color}gwt: Determined the upstream remote for this branocolorh: ${nocolor}${_upstream_remote}"
-    echo -e "${color}gwt: Determining the upstream branocolorh for this branocolorh${nocolor}"
-    local _upstream_branocolorh; _upstream_branocolorh=$(git rev-parse --abbrev-ref $(git branocolorh --show-current)@{upstream} | cut -d\/ -f2)
-    echo -e "${color}gwt: Determined the upstream branocolorh for this branocolorh: ${nocolor}${_upstream_branocolorh}"
+    echo -e "${color}gwt: Determining the upstream remote for this branch${nocolor}"
+    local _upstream_remote; _upstream_remote=$(git rev-parse --abbrev-ref $(git branch --show-current)@{upstream} | cut -d\/ -f1)
+    echo -e "${color}gwt: Determined the upstream remote for this branch: ${nocolor}${_upstream_remote}"
+    echo -e "${color}gwt: Determining the upstream branch for this branch${nocolor}"
+    local _upstream_branch; _upstream_branch=$(git rev-parse --abbrev-ref $(git branch --show-current)@{upstream} | cut -d\/ -f2)
+    echo -e "${color}gwt: Determined the upstream branch for this branch: ${nocolor}${_upstream_branch}"
 
     echo -e "${color}gwt: Fetching info from remote: ${nocolor}${_upstream_remote}"
     git fetch --prune --force --quiet upstream
 
-    echo -e "${color}gwt: Checking if ${nocolor}${_upstream_remote}/${_upstream_branocolorh}${color} has advanocolored sinocolore last pull${nocolor}"
-    git merge-base --is-anocolorestor $(git branocolorh --show-current) ${_upstream_remote}/${_upstream_branocolorh}
+    echo -e "${color}gwt: Checking if ${nocolor}${_upstream_remote}/${_upstream_branch}${color} has advanocolored sinocolore last pull${nocolor}"
+    git merge-base --is-anocolorestor $(git branch --show-current) ${_upstream_remote}/${_upstream_branch}
     anocolorestor_ret=$?
 
     if [[ ${anocolorestor_ret} -eq 0 ]]; then
         echo -e "${color}gwt: Remote head has not advanocolored${nocolor}"
     else
-        echo -e "${color}gwt: Merging from remote head: ${nocolor}${_upstream_remote}/${_upstream_branocolorh}"
-        git merge ${_upstream_remote}/${_upstream_branocolorh}
+        echo -e "${color}gwt: Merging from remote head: ${nocolor}${_upstream_remote}/${_upstream_branch}"
+        git merge ${_upstream_remote}/${_upstream_branch}
     fi
 }
 
@@ -178,38 +178,38 @@ function gwt_find_specified_worktree {
 }
 
 function gwt_get_origin_revision {
-    echo -e "${color}gwt: Determining the worktree's branocolorh revision${nocolor}"
+    echo -e "${color}gwt: Determining the worktree's branch revision${nocolor}"
     local local_revision
-    local_revision=$(git rev-parse $(git branocolorh --show-current))
-    echo -e "${color}gwt: Local worktree's branocolorh revision: ${nocolor}${local_revision}"
+    local_revision=$(git rev-parse $(git branch --show-current))
+    echo -e "${color}gwt: Local worktree's branch revision: ${nocolor}${local_revision}"
 
     echo -e "${color}gwt: Fetching info from remote: ${nocolor}origin"
     git fetch --prune --force --quiet origin
 
-    echo -e "${color}gwt: Checking if this branocolorh exists on remote: ${nocolor}origin"
+    echo -e "${color}gwt: Checking if this branch exists on remote: ${nocolor}origin"
     local remote_head
-    remote_head=$(git ls-remote --heads origin | grep "refs/heads/$(git branocolorh --show-current)$")
+    remote_head=$(git ls-remote --heads origin | grep "refs/heads/$(git branch --show-current)$")
 
     if [[ -z "${remote_head}" ]]; then
-        echo -e "${color}gwt: This worktree's branocolorh not found on remote: ${nocolor}origin"
+        echo -e "${color}gwt: This worktree's branch not found on remote: ${nocolor}origin"
     else
-        echo -e "${color}gwt: Checking the revision of this branocolorh on: ${nocolor}origin"
+        echo -e "${color}gwt: Checking the revision of this branch on: ${nocolor}origin"
         local remote_revision
-        remote_revision=$(git rev-parse origin/$(git branocolorh --show-current))
-        echo -e "${color}gwt: Remote ${nocolor}origin${color} has this branocolorh on revision: ${nocolor}${remote_revision}"
+        remote_revision=$(git rev-parse origin/$(git branch --show-current))
+        echo -e "${color}gwt: Remote ${nocolor}origin${color} has this branch on revision: ${nocolor}${remote_revision}"
 
-        echo -e "${color}gwt: Checking the base revision of this branocolorh on: ${nocolor}origin"
+        echo -e "${color}gwt: Checking the base revision of this branch on: ${nocolor}origin"
         local base_revision
-        base_revision=$(git merge-base $(git branocolorh --show-current) origin/$(git branocolorh --show-current))
+        base_revision=$(git merge-base $(git branch --show-current) origin/$(git branch --show-current))
 
         if [[ "${local_revision}" == "${remote_revision}" ]]; then
             echo -e "${color}gwt: Revisions match; continuing${nocolor}"
         elif [[ "${local_revision}" == "${base_revision}" ]]; then
             echo -e "${color}gwt: Pulling from remote: ${nocolor}origin"
-            git pull origin $(git branocolorh --show-current)
+            git pull origin $(git branch --show-current)
         elif [[ "${remote_revision}" == "${base_revision}" ]]; then
             echo -e "${color}gwt: Pushing to remote: ${nocolor}origin"
-            git push --prune origin $(git branocolorh --show-current)
+            git push --prune origin $(git branch --show-current)
         fi
     fi
 }
@@ -243,8 +243,8 @@ function gwt_prune_worktree {
                 cd $(dirname ${worktrees})
                 echo -e "${color}gwt: Removing the worktree from disk: ${nocolor}${worktrees}"
                 git worktree remove --force ${worktrees}
-                echo -e "${color}gwt: Deleting the branocolorh: ${nocolor}${1}"
-                git branocolorh -D ${1} 2>/dev/null
+                echo -e "${color}gwt: Deleting the branch: ${nocolor}${1}"
+                git branch -D ${1} 2>/dev/null
                 cd ~
                 ;;
             *)
