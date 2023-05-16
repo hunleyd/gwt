@@ -100,7 +100,7 @@ function gwt_check_for_merge {
 function gwt_enter_worktree {
     cd ${1}
     gwt_check_for_merge
-    _todo=$(whence todo)
+    _todo=$(type -p todo | awk '{print $NF}' | grep -v found)
     if [[ -n ${_todo} ]] ; then
         echo
         todo pop
