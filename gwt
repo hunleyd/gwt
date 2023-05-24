@@ -74,16 +74,8 @@ function gwt_get_upstream_development_revision {
     echo -e "${color}gwt: Fetching info from remote: ${nocolor}${_upstream_remote}"
     git fetch --prune --force --quiet upstream
 
-    echo -e "${color}gwt: Checking if ${nocolor}${_upstream_remote}/${_upstream_branch}${color} has advanced since last pull${nocolor}"
-    git merge-base --is-ancestor $(git branch --show-current) ${_upstream_remote}/${_upstream_branch}
-    ancestor_ret=$?
-
-    if [[ ${ancestor_ret} -eq 0 ]]; then
-        echo -e "${color}gwt: Remote head has not advanced${nocolor}"
-    else
-        echo -e "${color}gwt: Merging from remote head: ${nocolor}${_upstream_remote}/${_upstream_branch}"
-        git merge ${_upstream_remote}/${_upstream_branch}
-    fi
+    echo -e "${color}gwt: Merging from remote head: ${nocolor}${_upstream_remote}/${_upstream_branch}"
+    git merge ${_upstream_remote}/${_upstream_branch}
 }
 
 function gwt_check_for_merge {
@@ -100,7 +92,7 @@ function gwt_check_for_merge {
 function gwt_enter_worktree {
     cd ${1}
     gwt_check_for_merge
-    _todo=$(type -p todo | awk '{print $NF}' | grep -v found)
+    _todo=$(command -v todo)
     if [[ -n ${_todo} ]] ; then
         echo
         todo pop
@@ -178,11 +170,6 @@ function gwt_find_specified_worktree {
 }
 
 function gwt_get_origin_revision {
-    echo -e "${color}gwt: Determining the worktree's branch revision${nocolor}"
-    local local_revision
-    local_revision=$(git rev-parse $(git branch --show-current))
-    echo -e "${color}gwt: Local worktree's branch revision: ${nocolor}${local_revision}"
-
     echo -e "${color}gwt: Fetching info from remote: ${nocolor}origin"
     git fetch --prune --force --quiet origin
 
@@ -193,24 +180,11 @@ function gwt_get_origin_revision {
     if [[ -z "${remote_head}" ]]; then
         echo -e "${color}gwt: This worktree's branch not found on remote: ${nocolor}origin"
     else
-        echo -e "${color}gwt: Checking the revision of this branch on: ${nocolor}origin"
-        local remote_revision
-        remote_revision=$(git rev-parse origin/$(git branch --show-current))
-        echo -e "${color}gwt: Remote ${nocolor}origin${color} has this branch on revision: ${nocolor}${remote_revision}"
+        echo -e "${color}gwt: Pulling from remote: ${nocolor}origin"
+        git pull origin $(git branch --show-current)
 
-        echo -e "${color}gwt: Checking the base revision of this branch on: ${nocolor}origin"
-        local base_revision
-        base_revision=$(git merge-base $(git branch --show-current) origin/$(git branch --show-current))
-
-        if [[ "${local_revision}" == "${remote_revision}" ]]; then
-            echo -e "${color}gwt: Revisions match; continuing${nocolor}"
-        elif [[ "${local_revision}" == "${base_revision}" ]]; then
-            echo -e "${color}gwt: Pulling from remote: ${nocolor}origin"
-            git pull origin $(git branch --show-current)
-        elif [[ "${remote_revision}" == "${base_revision}" ]]; then
-            echo -e "${color}gwt: Pushing to remote: ${nocolor}origin"
-            git push --prune origin $(git branch --show-current)
-        fi
+        echo -e "${color}gwt: Pushing to remote: ${nocolor}origin"
+        git push --prune origin $(git branch --show-current)
     fi
 }
 
