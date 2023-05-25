@@ -20,27 +20,29 @@ function gwt_create_worktree {
         else
             local fetch_remote
             fetch_remote="${3%\/*}"
-            echo -e "${color}gwt: Checking if ${nocolor}${fetch_remote}${color} is a fetchable remote${nocolor}"
+            echo -en "${color}gwt: Checking if ${nocolor}${fetch_remote}${color} is a fetchable remote: ${nocolor}"
             local fetch_branch
             fetch_branch="${3#*\/}"
             local fetchable_remote
             fetchable_remote=$(git remotes | grep -E "^${fetch_remote}.*\(fetch\)$")
 
             if [[ -z "${fetchable_remote}" ]]; then
-                echo -e "${color}gwt: Remote ${nocolor}${fetch_remote}${color} is not fetchable${nocolor}"
+                echo "not fetchable"
                 echo -e "${color}gwt: Please re-run: ${nocolor}gwt create <repo> <worktree> <remote>"
             else
+                echo "fetchable"
                 echo -e "${color}gwt: Fetching remote: ${nocolor}${fetch_remote}"
                 git fetch --prune --tags ${fetch_remote}
 
-                echo -e "${color}gwt: Checking if ${nocolor}${fetch_branch}${color} is a valid head on ${nocolor}${fetch_remote}${color} remote${nocolor}"
+                echo -en "${color}gwt: Checking if ${nocolor}${fetch_branch}${color} is a valid head on ${nocolor}${fetch_remote}${color} remote: ${nocolor}"
                 local remote_head
                 remote_head=$(git ls-remote --heads ${fetch_remote} | grep "${fetch_branch}$")
 
                 if [[ -z "${remote_head}" ]]; then
-                    echo -e "${color}gwt: Head ${nocolor}${fetch_branch}${color} was not found on ${nocolor}${fetch_remote}${color} remote${nocolor}"
+                    echo "not found"
                     echo -e "${color}gwt: Please re-run: ${nocolor}gwt create <repo> <worktree> <remote>/<head>"
                 else
+                    echo "found"
                     echo -e "${color}gwt: Creating worktree${nocolor}"
                     local add_ret
                     git worktree add -b ${2} ${repodir}/${1}/.trees/${2} ${3}
@@ -64,12 +66,12 @@ function gwt_create_worktree {
 }
 
 function gwt_get_upstream_development_revision {
-    echo -e "${color}gwt: Determining the upstream remote for this branch${nocolor}"
+    echo -en "${color}gwt: Determining the upstream remote for this branch: ${nocolor}"
     local _upstream_remote; _upstream_remote=$(git rev-parse --abbrev-ref $(git branch --show-current)@{upstream} | cut -d\/ -f1)
-    echo -e "${color}gwt: Determined the upstream remote for this branch: ${nocolor}${_upstream_remote}"
-    echo -e "${color}gwt: Determining the upstream branch for this branch${nocolor}"
+    echo "${_upstream_remote}"
+    echo -en "${color}gwt: Determining the upstream branch for this branch: ${nocolor}"
     local _upstream_branch; _upstream_branch=$(git rev-parse --abbrev-ref $(git branch --show-current)@{upstream} | cut -d\/ -f2)
-    echo -e "${color}gwt: Determined the upstream branch for this branch: ${nocolor}${_upstream_branch}"
+    echo "${_upstream_branch}"
 
     echo -e "${color}gwt: Fetching info from remote: ${nocolor}${_upstream_remote}"
     git fetch --prune --force --quiet upstream
@@ -79,14 +81,14 @@ function gwt_get_upstream_development_revision {
 }
 
 function gwt_check_for_merge {
-    echo -e "${color}gwt: Checking if a merge is in progress${nocolor}"
+    echo -en "${color}gwt: Checking if a merge is in progress: ${nocolor}"
     git rev-list -1 MERGE_HEAD &>/dev/null
     if [[ $? -eq 128 ]]; then
-        echo -e "${color}gwt: A merge IS NOT in progress${nocolor}"
+        echo "A merge IS NOT in progress"
         gwt_get_origin_revision
         gwt_get_upstream_development_revision
     else
-        echo -e "${color}gwt: A MERGE IS IN PROGRESS. Please finish the merge!${nocolor}"
+        echo "A MERGE IS IN PROGRESS. Please finish the merge!"
     fi
     }
 function gwt_enter_worktree {
@@ -170,16 +172,17 @@ function gwt_find_specified_worktree {
 }
 
 function gwt_get_origin_revision {
-    echo -e "${color}gwt: Fetching info from remote: ${nocolor}origin"
+    echo -e "${color}gwt: Fetching info from ${nocolor}origin ${color}remote"
     git fetch --prune --force --quiet origin
 
-    echo -e "${color}gwt: Checking if this branch exists on remote: ${nocolor}origin"
+    echo -en "${color}gwt: Checking if this branch exists on remote ${nocolor}origin${color}:${nocolor} "
     local remote_head
     remote_head=$(git ls-remote --heads origin | grep "refs/heads/$(git branch --show-current)$")
 
     if [[ -z "${remote_head}" ]]; then
-        echo -e "${color}gwt: This worktree's branch not found on remote: ${nocolor}origin"
+        echo "no"
     else
+        echo "yes"
         echo -e "${color}gwt: Pulling from remote: ${nocolor}origin"
         git pull origin $(git branch --show-current)
 
