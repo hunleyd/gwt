@@ -45,14 +45,23 @@ function gwt_create_worktree {
                     echo "found"
                     echo -e "${color}gwt: Creating worktree${nocolor}"
                     local add_ret
-                    git worktree add -b ${2} ${repodir}/${1}/.trees/${2} ${3}
-                    add_ret=$?
+                    if [[ "${fetch_remote}" == 'upstream' ]]; then
+                        git worktree add -b ${2} ${repodir}/${1}/.trees/${2} ${3}
+                        add_ret=$?
+                    else
+                        git worktree add -b ${fetch_remote}_${fetch_branch} ${repodir}/${1}/.trees/${fetch_remote}_${fetch_branch} ${3}
+                        add_ret=$?
+                    fi
 
                     if [[ ${add_ret} -ne 0 ]]; then
                         echo
                         echo -e "${color}gwt: Creating the worktree FAILED !!${nocolor}"
                     else
-                        cd ${repodir}/${1}/.trees/${2}
+                        if [[ "${fetch_remote}" == 'upstream' ]]; then
+                            cd ${repodir}/${1}/.trees/${2}
+                        else
+                            cd ${repodir}/${1}/.trees/${fetch_remote}_${fetch_branch}
+                        fi
                         gwt_init_submodules
                         echo -e "${color}gwt: Creating an empty commit${nocolor}"
                         git commit -m 'chore: empty commit to allow push'
@@ -98,6 +107,17 @@ function gwt_enter_worktree {
     if [[ -n ${_todo} ]] ; then
         echo
         todo pop
+        echo
+        case $(basename $SHELL) in
+            bash)
+                read -p "Press enter after reviewing output above..." junk
+                ;;
+            zsh)
+                read -q "JUNK?Press enter after reviewing output above..."
+                ;;
+            *)
+                echo "shell is $(basename $SHELL)"
+        esac
     fi
 }
 
