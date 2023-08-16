@@ -32,7 +32,7 @@ function gwt_create_worktree {
             else
                 echo "fetchable"
                 echo -e "${color}gwt: Fetching remote: ${nocolor}${fetch_remote}"
-                git fetch --prune --tags ${fetch_remote}
+                git fetch --prune --prune-tags --force ${fetch_remote}
 
                 echo -en "${color}gwt: Checking if ${nocolor}${fetch_branch}${color} is a valid head on ${nocolor}${fetch_remote}${color} remote: ${nocolor}"
                 local remote_head
@@ -83,7 +83,7 @@ function gwt_get_upstream_development_revision {
     echo "${_upstream_branch}"
 
     echo -e "${color}gwt: Fetching info from remote: ${nocolor}${_upstream_remote}"
-    git fetch --prune --force --quiet upstream
+    git fetch --prune --prune-tags --force --quiet upstream
 
     echo -e "${color}gwt: Merging from remote head: ${nocolor}${_upstream_remote}/${_upstream_branch}"
     git merge ${_upstream_remote}/${_upstream_branch}
@@ -193,7 +193,7 @@ function gwt_find_specified_worktree {
 
 function gwt_get_origin_revision {
     echo -e "${color}gwt: Fetching info from ${nocolor}origin ${color}remote"
-    git fetch --prune --force --quiet origin
+    git fetch --prune --prune-tags --force --quiet origin
 
     echo -en "${color}gwt: Checking if this branch exists on remote ${nocolor}origin${color}:${nocolor} "
     local remote_head
@@ -213,7 +213,10 @@ function gwt_get_origin_revision {
 
 function gwt_init_submodules {
         echo -e "${color}gwt: Initializing submodules${nocolor}"
-        git submodule update --remote --recursive --init
+        git submodule init
+        git submodule update
+        git submodule foreach 'git fetch origin; git checkout $(git rev-parse --abbrev-ref HEAD); git reset --hard origin/$(git rev-parse --abbrev-ref HEAD); git submodule update --recursive; git clean -dfx'
+
 }
 
 function gwt_prune_worktree {
