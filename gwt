@@ -215,8 +215,6 @@ function gwt_init_submodules {
         echo -e "${color}gwt: Initializing submodules${nocolor}"
         git submodule init
         git submodule update
-        git submodule foreach 'git fetch origin; git checkout $(git rev-parse --abbrev-ref HEAD); git reset --hard origin/$(git rev-parse --abbrev-ref HEAD); git submodule update --recursive; git clean -dfx'
-
 }
 
 function gwt_prune_worktree {
