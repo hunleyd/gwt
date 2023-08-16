@@ -213,8 +213,7 @@ function gwt_get_origin_revision {
 
 function gwt_init_submodules {
         echo -e "${color}gwt: Initializing submodules${nocolor}"
-        git submodule init
-        git submodule update
+        git submodule update --remote --recursive --init $(git submodule status | awk '{print $2}')
 }
 
 function gwt_prune_worktree {
