@@ -2,7 +2,7 @@
 [![GPLv2 License](https://img.shields.io/badge/License-GPL%20v2-yellow.svg)](https://opensource.org/licenses/)
 # gwt - a Git worktree wrapper
 
-`gwt` is a Bash function to make working with [git worktree](https://git-scm.com/docs/git-worktree) a little easier. It provides functionality for listing all existing worktress, creating new worktrees, removing stale worktrees, and automates updating a worktree upon entering it.
+`gwt` is a Bash function to make working with [git worktree](https://git-scm.com/docs/git-worktree) a little easier. It provides functionality for listing all existing worktrees, creating new worktrees, removing stale worktrees, and automates updating a worktree upon entering it.
 
 ## Environment Variables
 
