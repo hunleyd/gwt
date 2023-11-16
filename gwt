@@ -24,7 +24,7 @@ function gwt_create_worktree {
             local fetch_branch
             fetch_branch="${3#*\/}"
             local fetchable_remote
-            fetchable_remote=$(git remotes | grep -E "^${fetch_remote}.*\(fetch\)$")
+            fetchable_remote=$(git remote -v | grep -E "^${fetch_remote}.*\(fetch\)$")
 
             if [[ -z "${fetchable_remote}" ]]; then
                 echo "not fetchable"
