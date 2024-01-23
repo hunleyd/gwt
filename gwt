@@ -242,6 +242,7 @@ function gwt_prune_worktree {
                 git worktree remove --force ${worktrees}
                 echo -e "${color}gwt: Deleting the branch: ${nocolor}${1}"
                 git branch -D ${1} 2>/dev/null
+                git push origin --delete ${1} 2>/dev/null
                 cd ~
                 ;;
             *)
