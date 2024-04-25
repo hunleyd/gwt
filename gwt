@@ -287,8 +287,8 @@ function gwt {
                         gwt_create_worktree ${1} ${2} upstream/development
                         ;;
                     3)
-                        local remote ; remote=${3%\/*}
-                        local head; head=${3#*\/}
+                        local remote ; remote=${3%:*}
+                        local head; head=${3#*:}
                         gwt_create_worktree ${1} ${2} ${remote}/${head:=development}
                         ;;
                     4)
