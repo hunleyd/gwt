@@ -28,6 +28,17 @@ function gwt_create_worktree {
 
             if [[ -z "${fetchable_remote}" ]]; then
                 echo "not fetchable"
+                echo -e "${color}gwt: Attempting to add remote: ${nocolor}${fetch_remote}"
+                local gh_fetch_example_remote=$(git remote -v | grep -E '^origin.*\(fetch\)$' | awk '{print $2}')
+                local gh_userid=$(git remote -v | grep -E '^origin.*\(fetch\)$' | awk '{print $2}' | cut -d: -f2- -s | cut -d\/ -f1 -s)
+                local gh_fetch_remote=$(echo ${gh_fetch_example_remote} | sed -e "s/${gh_userid}/${fetch_remote}/")
+                git remote add ${fetch_remote} ${gh_fetch_remote}
+                if [[ $? -eq 0 ]]; then
+                    echo -e "${color}gwt: Successfully added remote: ${nocolor}${fetch_remote}"
+                else
+                    echo -e "${color}gwt: Unable to add remote: ${nocolor}${fetch_remote}"
+                fi
+                echo
                 echo -e "${color}gwt: Please re-run: ${nocolor}gwt create <repo> <worktree> <remote>"
             else
                 echo "fetchable"
