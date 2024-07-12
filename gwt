@@ -295,7 +295,14 @@ function gwt {
                 shift
                 case $# in
                     2)
-                        gwt_create_worktree ${1} ${2} upstream/development
+                        local is_remote ; is_remote=$(echo ${2} | cut -d: -f1 -s)
+                        if [[ -z "${is_remote}" ]]; then
+                            gwt_create_worktree ${1} ${2} upstream/development
+                        else
+                            local remote ; remote=${2%:*}
+                            local head; head=${2#*:}
+                            gwt_create_worktree ${1} ${2} ${remote}/${head}
+                        fi
                         ;;
                     3)
                         local remote ; remote=${3%:*}
